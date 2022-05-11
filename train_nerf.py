@@ -19,7 +19,11 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config", type=str, required=True, help="Path to (.yml) config file."
+        "--config",
+        type=str,
+        # required=True,
+        default="config/lego.yml",
+        help="Path to (.yml) config file."
     )
     parser.add_argument(
         "--load-checkpoint",
@@ -58,6 +62,8 @@ def main():
                 half_res=cfg.dataset.half_res,
                 testskip=cfg.dataset.testskip,
             )
+            # cfg.dataset.basedir = 'cache/nerf_synthetic/lego'
+            # cfg.dataset.testskip = 1
             i_train, i_val, i_test = i_split
             H, W, focal = hwf
             H, W = int(H), int(W)
@@ -115,6 +121,7 @@ def main():
         )
 
     # Initialize a coarse-resolution model.
+    # model_coarse = FlexibleNeRFModel()
     model_coarse = getattr(models, cfg.models.coarse.type)(
         num_encoding_fn_xyz=cfg.models.coarse.num_encoding_fn_xyz,
         num_encoding_fn_dir=cfg.models.coarse.num_encoding_fn_dir,
@@ -122,6 +129,7 @@ def main():
         include_input_dir=cfg.models.coarse.include_input_dir,
         use_viewdirs=cfg.models.coarse.use_viewdirs,
     )
+    print(model_coarse)
     model_coarse.to(device)
     # If a fine-resolution model is specified, initialize it.
     model_fine = None

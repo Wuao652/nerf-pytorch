@@ -1,3 +1,5 @@
+import sys
+
 import torch
 
 
@@ -145,7 +147,8 @@ class PaperNeRFModel(torch.nn.Module):
         self.layers_xyz = torch.nn.ModuleList()
         self.use_viewdirs = use_viewdirs
         self.layers_xyz.append(torch.nn.Linear(self.dim_xyz, 256))
-        for i in range(1, 8):
+        # for i in range(1, 8):
+        for i in range(7):
             if i == 4:
                 self.layers_xyz.append(torch.nn.Linear(self.dim_xyz + 256, 256))
             else:
@@ -155,15 +158,20 @@ class PaperNeRFModel(torch.nn.Module):
 
         self.layers_dir = torch.nn.ModuleList()
         self.layers_dir.append(torch.nn.Linear(256 + self.dim_dir, 128))
-        for i in range(3):
-            self.layers_dir.append(torch.nn.Linear(128, 128))
+        # for i in range(3):
+        #     self.layers_dir.append(torch.nn.Linear(128, 128))
         self.fc_rgb = torch.nn.Linear(128, 3)
         self.relu = torch.nn.functional.relu
 
     def forward(self, x):
-        xyz, dirs = x[..., : self.dim_xyz], x[..., self.dim_xyz :]
-        for i in range(8):
-            if i == 4:
+        if self.use_viewdirs:
+            xyz, dirs = x[..., : self.dim_xyz], x[..., self.dim_xyz :]
+        else:
+            xyz = x[..., : self.dim_xyz]
+
+        x = self.layers_xyz[0](xyz)
+        for i in range(1, 8):
+            if i == 5:
                 x = self.layers_xyz[i](torch.cat((xyz, x), -1))
             else:
                 x = self.layers_xyz[i](x)
@@ -175,9 +183,9 @@ class PaperNeRFModel(torch.nn.Module):
         else:
             x = self.layers_dir[0](feat)
         x = self.relu(x)
-        for i in range(1, 3):
-            x = self.layers_dir[i](x)
-            x = self.relu(x)
+        # for i in range(1, 3):
+        #     x = self.layers_dir[i](x)
+        #     x = self.relu(x)
         rgb = self.fc_rgb(x)
         return torch.cat((rgb, alpha), dim=-1)
 
@@ -254,3 +262,25 @@ class FlexibleNeRFModel(torch.nn.Module):
             return torch.cat((rgb, alpha), dim=-1)
         else:
             return self.fc_out(x)
+
+if __name__ == '__main__':
+    # PaperNeRFModel is the one mentioned in the paper
+    # The script is currently using the FlexibleNeRFModel
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(device)
+    N = 10
+    xyz, dir = torch.rand((N, 60)), torch.rand((N, 24))
+    x = torch.cat((xyz, dir), dim=-1)
+    # xyz, dir = xyz.to(device), dir.to(device)
+    x = x.to(device)
+
+    model = PaperNeRFModel(
+        num_encoding_fn_xyz=10,
+        num_encoding_fn_dir=4,
+        include_input_xyz=False,
+        include_input_dir=False,
+        use_viewdirs=True
+    )
+    print(model)
+    model.to(device)
+    out = model(x)
