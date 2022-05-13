@@ -22,7 +22,7 @@ def main():
         "--config",
         type=str,
         # required=True,
-        default="config/lego.yml",
+        default="config/wuao-lego-1.yml",
         help="Path to (.yml) config file."
     )
     parser.add_argument(
@@ -410,4 +410,10 @@ def cast_to_image(tensor):
 
 
 if __name__ == "__main__":
+    startTime = time.time()
+    # train NeRF model
     main()
+    executionTime = (time.time() - startTime)
+    print('Execution time in seconds: ' + str(executionTime))
+    print('Execution time in minutes: ' + str(float(executionTime) / 60.0))
+    print('Execution time in hours: ' + str(float(executionTime) / 60.0 / 60.0))
