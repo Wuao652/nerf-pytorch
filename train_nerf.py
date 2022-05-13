@@ -2,7 +2,7 @@ import argparse
 import glob
 import os
 import time
-
+import datetime
 import numpy as np
 import torch
 import torchvision
@@ -151,8 +151,10 @@ def main():
         trainable_parameters, lr=cfg.optimizer.lr
     )
 
+
     # Setup logging.
-    logdir = os.path.join(cfg.experiment.logdir, cfg.experiment.id)
+    logs_time = datetime.datetime.now()
+    logdir = os.path.join(cfg.experiment.logdir, cfg.experiment.id + '_' + str(logs_time))
     os.makedirs(logdir, exist_ok=True)
     writer = SummaryWriter(logdir)
     # Write out config parameters.
@@ -177,7 +179,7 @@ def main():
 
         model_coarse.train()
         if model_fine:
-            model_coarse.train()
+            model_fine.train()
 
         rgb_coarse, rgb_fine = None, None
         target_ray_values = None
@@ -219,6 +221,8 @@ def main():
             img_idx = np.random.choice(i_train)
             img_target = images[img_idx].to(device)
             pose_target = poses[img_idx, :3, :4].to(device)
+            # ray_origins (400, 400, 3) pinhole point for each pixel
+            # ray_directions (400, 400, 3)
             ray_origins, ray_directions = get_ray_bundle(H, W, focal, pose_target)
             coords = torch.stack(
                 meshgrid_xy(torch.arange(H).to(device), torch.arange(W).to(device)),
@@ -229,9 +233,13 @@ def main():
                 coords.shape[0], size=(cfg.nerf.train.num_random_rays), replace=False
             )
             select_inds = coords[select_inds]
+            # for each image select train.num_random_rays to train the neural network
+            # ray_origins = (1024, 3)
+            # ray_directions = (1024, 3)
+            # target_s = (1024, 3)
+
             ray_origins = ray_origins[select_inds[:, 0], select_inds[:, 1], :]
             ray_directions = ray_directions[select_inds[:, 0], select_inds[:, 1], :]
-            # batch_rays = torch.stack([ray_origins, ray_directions], dim=0)
             target_s = img_target[select_inds[:, 0], select_inds[:, 1], :]
 
             then = time.time()
@@ -301,7 +309,7 @@ def main():
             tqdm.write("[VAL] =======> Iter: " + str(i))
             model_coarse.eval()
             if model_fine:
-                model_coarse.eval()
+                model_fine.eval()
 
             start = time.time()
             with torch.no_grad():
