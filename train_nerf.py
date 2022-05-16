@@ -224,6 +224,10 @@ def main():
             # ray_origins (400, 400, 3) pinhole point for each pixel
             # ray_directions (400, 400, 3)
             ray_origins, ray_directions = get_ray_bundle(H, W, focal, pose_target)
+
+            # TODO: do not use ray samples when implement full nerf
+            #       use the whole image instead
+
             coords = torch.stack(
                 meshgrid_xy(torch.arange(H).to(device), torch.arange(W).to(device)),
                 dim=-1,

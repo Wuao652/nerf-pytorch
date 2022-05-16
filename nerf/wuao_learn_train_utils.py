@@ -1,12 +1,17 @@
-import torch
+# This file is used to learn the train_utils functions
+# rd.npy records the ray-direction data (1024, 3)
+# ro.npy records the ray-origin data (1024, 3)
 
-from .nerf_helpers import get_minibatches, ndc_rays
-from .nerf_helpers import sample_pdf_2 as sample_pdf
-from .volume_rendering_utils import volume_render_radiance_field
+import torch
+import numpy as np
+from nerf.nerf_helpers import get_minibatches, ndc_rays
+from nerf.nerf_helpers import sample_pdf_2 as sample_pdf
+from nerf.volume_rendering_utils import volume_render_radiance_field
+
 
 
 def run_network(network_fn, pts, ray_batch, chunksize, embed_fn, embeddirs_fn):
-    # [num_rays * num_samples, 3]
+
     pts_flat = pts.reshape((-1, pts.shape[-1]))
     embedded = embed_fn(pts_flat)
     if embeddirs_fn is not None:
@@ -37,14 +42,11 @@ def predict_and_render_radiance(
     # TESTED
     num_rays = ray_batch.shape[0]
     ro, rd = ray_batch[..., :3], ray_batch[..., 3:6]
-    # [1024, 1, 2]
     bounds = ray_batch[..., 6:8].view((-1, 1, 2))
-    # [1024, 1]
     near, far = bounds[..., 0], bounds[..., 1]
 
     # TODO: Use actual values for "near" and "far" (instead of 0. and 1.)
     # when not enabling "ndc".
-    # divide [0., 1.] into 64 (num_coarse) parts
     t_vals = torch.linspace(
         0.0,
         1.0,
@@ -69,7 +71,6 @@ def predict_and_render_radiance(
     # pts -> (num_rays, N_samples, 3)
     pts = ro[..., None, :] + rd[..., None, :] * z_vals[..., :, None]
 
-    # radiance_filed -> (num_rays, N_samples, 4)
     radiance_field = run_network(
         model_coarse,
         pts,
@@ -147,7 +148,6 @@ def run_one_iter_of_nerf(
     viewdirs = None
     if options.nerf.use_viewdirs:
         # Provide ray directions as input
-        # Normalize the ray direction
         viewdirs = ray_directions
         viewdirs = viewdirs / viewdirs.norm(p=2, dim=-1).unsqueeze(-1)
         viewdirs = viewdirs.view((-1, 3))
@@ -166,11 +166,8 @@ def run_one_iter_of_nerf(
     else:
         ro = ray_origins.view((-1, 3))
         rd = ray_directions.view((-1, 3))
-    # [1024, 1]
     near = options.dataset.near * torch.ones_like(rd[..., :1])
-    # [1024, 1]
     far = options.dataset.far * torch.ones_like(rd[..., :1])
-    # [1024, 8] [origin direction near far]
     rays = torch.cat((ro, rd, near, far), dim=-1)
     if options.nerf.use_viewdirs:
         rays = torch.cat((rays, viewdirs), dim=-1)
@@ -208,3 +205,22 @@ def run_one_iter_of_nerf(
             return tuple(synthesized_images + [None, None, None])
 
     return tuple(synthesized_images)
+
+
+if __name__ == '__main__':
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    h, w, focal = 400, 400, 555.5555155968841
+    ray_origin = np.load('../ro.npy')
+    ray_direction = np.load('../rd.npy')
+    ray_origin, ray_direction = torch.from_numpy(ray_origin).to(device), \
+                                torch.from_numpy(ray_direction).to(device)
+    print(ray_direction.shape)
+    print(ray_direction)
+    view_dir = ray_direction / ray_direction.norm(p=2, dim=-1).unsqueeze(-1)
+    view_dir = view_dir.reshape((-1, 3))
+    near, far = 2.0, 6.0
+    near = near * torch.ones_like(ray_origin[..., :1])
+    far = far * torch.ones_like(ray_direction[..., :1])
+    rays = torch.cat((ray_origin, ray_direction, near, far, view_dir), dim=-1)
+    print(rays.shape)
+    batches = [rays]
