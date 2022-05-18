@@ -51,6 +51,7 @@ def volume_render_radiance_field(
     # dists times the norm of the ray directions
     dists = dists * ray_directions[..., None, :].norm(p=2, dim=-1)
 
+    # [num_rays, N_samples, 3] stores the color of each query point
     rgb = torch.sigmoid(radiance_field[..., :3])
     noise = 0.0
     if radiance_field_noise_std > 0.0:
@@ -62,10 +63,13 @@ def volume_render_radiance_field(
             )
             * radiance_field_noise_std
         )
-
+    # [num_rays, N_samples] stores the volume density of each query point, e.g.[1024, 64]
     sigma_a = torch.nn.functional.relu(radiance_field[..., 3] + noise)
-
     alpha = 1.0 - torch.exp(-sigma_a * dists)
+
+    # cumprod_exclusive computes the T for each query point.
+    # cumprod_exclusive(torch.exp(-sigma_a * dists))
+    # weights [num_rays, N_samples]
     weights = alpha * cumprod_exclusive(1.0 - alpha + 1e-10)
 
     rgb_map = weights[..., None] * rgb

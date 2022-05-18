@@ -136,3 +136,4 @@ logs/
 
 # Unknown folders
 .idea/
+npy/

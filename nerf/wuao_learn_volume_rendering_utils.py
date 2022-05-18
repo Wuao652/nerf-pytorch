@@ -8,9 +8,9 @@ torch.manual_seed(seed)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("hello world from wuao_learn!")
-radiance_field = torch.tensor(np.load('../radiance_field.npy')).to(device)
-rd = torch.tensor(np.load('../rd.npy')).to(device)
-z_vals = torch.tensor(np.load('../z_vals.npy')).to(device)
+radiance_field = torch.tensor(np.load('../npy/radiance_field.npy')).to(device)
+rd = torch.tensor(np.load('../npy/rd.npy')).to(device)
+z_vals = torch.tensor(np.load('../npy/z_vals.npy')).to(device)
 
 # (rf_rgb_coarse,
 #  rf_disp_coarse,

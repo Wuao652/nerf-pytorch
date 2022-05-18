@@ -210,8 +210,8 @@ def run_one_iter_of_nerf(
 if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     h, w, focal = 400, 400, 555.5555155968841
-    ray_origin = np.load('../ro.npy')
-    ray_direction = np.load('../rd.npy')
+    ray_origin = np.load('../npy/ro.npy')
+    ray_direction = np.load('../npy/rd.npy')
     ray_origin, ray_direction = torch.from_numpy(ray_origin).to(device), \
                                 torch.from_numpy(ray_direction).to(device)
     print(ray_direction.shape)

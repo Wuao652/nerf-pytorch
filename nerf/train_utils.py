@@ -173,6 +173,7 @@ def run_one_iter_of_nerf(
     # [1024, 8] [origin direction near far]
     rays = torch.cat((ro, rd, near, far), dim=-1)
     if options.nerf.use_viewdirs:
+        # [1024, 11] [origin direction near far normalized_direction]
         rays = torch.cat((rays, viewdirs), dim=-1)
 
     batches = get_minibatches(rays, chunksize=getattr(options.nerf, mode).chunksize)
