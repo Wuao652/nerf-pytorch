@@ -14,7 +14,7 @@ from nerf import (CfgNode, get_embedding_function, get_ray_bundle, img2mse,
                   load_blender_data, load_llff_data, meshgrid_xy, models,
                   mse2psnr, run_one_iter_of_nerf)
 
-
+import matplotlib.pyplot as plt
 def main():
 
     parser = argparse.ArgumentParser()
@@ -175,6 +175,10 @@ def main():
 
     # # TODO: Prepare raybatch tensor if batching random rays
 
+    # Wuao add figure plots
+    # iternum = []
+    # iterpsnr = []
+    # iterloss = []
     for i in trange(start_iter, cfg.experiment.train_iters):
 
         model_coarse.train()
@@ -390,6 +394,24 @@ def main():
                     + " Time: "
                     + str(time.time() - start)
                 )
+
+                # iternum.append(i)
+                # iterpsnr.append(psnr)
+                # iterloss.append(loss.item())
+                # plt.figure()
+                # plt.subplot(221)
+                # plt.imshow(rgb_fine[..., :3].detach().cpu().numpy())
+                # plt.title(f'predicted image')
+                # plt.subplot(222)
+                # plt.imshow(target_ray_values[..., :3].detach().cpu().numpy())
+                # plt.title(f'target image')
+                # plt.subplot(223)
+                # plt.plot(iternum, iterloss)
+                # plt.title(f'loss curve')
+                # plt.subplot(224)
+                # plt.plot(iternum, iterpsnr)
+                # plt.title(f'psnr curve')
+                # plt.show()
 
         if i % cfg.experiment.save_every == 0 or i == cfg.experiment.train_iters - 1:
             checkpoint_dict = {
