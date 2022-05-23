@@ -13,6 +13,7 @@ from tqdm import tqdm, trange
 from nerf import (CfgNode, get_embedding_function, get_ray_bundle, img2mse,
                   load_blender_data, load_llff_data, meshgrid_xy, models,
                   mse2psnr, run_one_iter_of_nerf)
+from nerf import load_carla_data
 
 import matplotlib.pyplot as plt
 def main():
@@ -22,7 +23,7 @@ def main():
         "--config",
         type=str,
         # required=True,
-        default="config/wuao-lego-1.yml",
+        default="config/fern.yml",
         help="Path to (.yml) config file."
     )
     parser.add_argument(
@@ -88,6 +89,14 @@ def main():
                     if (i not in i_test and i not in i_val)
                 ]
             )
+            H, W, focal = hwf
+            H, W = int(H), int(W)
+            hwf = [H, W, focal]
+            images = torch.from_numpy(images)
+            poses = torch.from_numpy(poses)
+        elif cfg.dataset.type.lower() == "carla":
+            images, poses, hwf, i_split = load_carla_data(cfg.dataset.basedir)
+            i_train, i_val, i_test = i_split
             H, W, focal = hwf
             H, W = int(H), int(W)
             hwf = [H, W, focal]
