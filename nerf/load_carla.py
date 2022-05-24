@@ -74,7 +74,7 @@ def load_carla_data(basedir, half_res=True):
     print('poses: ', poses.shape)
     print('hwf', hwf)
     print('i_split', i_split)
-    return images, poses, hwf, i_split
+    return images.astype(np.float32), poses.astype(np.float32), hwf, i_split
 
 if __name__ =='__main__':
     basedir = '../cache/nerf_carla'
