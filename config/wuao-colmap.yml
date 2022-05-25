@@ -20,7 +20,7 @@ dataset:
   # Type of the dataset (Blender vs LLFF vs DeepVoxels vs something else)
   type: llff
   # Base directory of dataset.
-  basedir: cache/nerf_carla/carla-colmap
+  basedir: cache/nerf_carla/carla
   # Optionally, provide a path to the pre-cached dataset dir. This
   # overrides the other dataset options.
   # cachedir: cache/legocache200

@@ -28,9 +28,9 @@ dataset:
   # synthetic (Blender) datasets.
   no_ndc: True
   # Near clip plane (clip all depth values closer than this threshold).
-  near: 0
+  near: 0.02
   # Far clip plane (clip all depth values farther than this threshold).
-  far: 15
+  far: 6
 
 # Model parameters.
 models:
@@ -129,7 +129,7 @@ nerf:
     white_background: False
     # Standard deviation of noise to be added to the radiance field when
     # performing volume rendering.
-    radiance_field_noise_std: 1.
+    radiance_field_noise_std: 0.2
     # Sample linearly in disparity space, as opposed to in depth space.
     lindisp: False
   # Validation-specific parameters.

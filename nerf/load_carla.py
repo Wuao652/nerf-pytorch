@@ -66,9 +66,17 @@ def load_carla_data(basedir, half_res=True):
     poses[:, :-1, -1] = poses[:, :-1, -1] - np.mean(xy, 0)
     poses[:, :, -1] /= 18.0
 
+    poses[:, :, 1] = - poses[:, :, 1]
+    poses[:, :, 2] = - poses[:, :, 2]
+
+    np.random.seed(34)
     hwf = [H, W, focal]
-    i_split = [list(range(i, i+39)) for i in range(0, images.shape[0], 39)]
-    i_split[1] = [i_split[0][0]]
+
+    i_choice = np.random.choice(images.shape[0], images.shape[0], False)
+    i_split = [list(range(i, i+39)) for i in range(0, images.shape[0], images.shape[0] // 3)]
+    i_split = [i_choice[s] for s in i_split]
+
+    i_split[1] = np.array([i_split[1][0]])
 
     print('images: ', images.shape)
     print('poses: ', poses.shape)
