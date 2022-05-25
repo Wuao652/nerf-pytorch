@@ -23,7 +23,7 @@ def main():
         "--config",
         type=str,
         # required=True,
-        default="config/wuao-carla.yml",
+        default="config/wuao-indoor.yml",
         help="Path to (.yml) config file."
     )
     parser.add_argument(

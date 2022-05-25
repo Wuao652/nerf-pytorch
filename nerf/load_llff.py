@@ -276,7 +276,7 @@ def spherify_poses(poses, bds):
 
 
 def load_llff_data(
-    basedir, factor=8, recenter=True, bd_factor=0.75, spherify=True, path_zflat=False
+    basedir, factor=8, recenter=True, bd_factor=0.75, spherify=False, path_zflat=False
 ):
 
     poses, bds, imgs = _load_data(
