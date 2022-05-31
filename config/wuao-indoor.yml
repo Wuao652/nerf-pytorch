@@ -9,18 +9,18 @@ experiment:
   # Number of training iterations.
   train_iters: 250000
   # Number of training iterations after which to validate.
-  validate_every: 50
+  validate_every: 1000
   # Number of training iterations after which to checkpoint.
   save_every: 5000
   # Number of training iterations after which to print progress.
-  print_every: 100
+  print_every: 1000
 
 # Dataset parameters.
 dataset:
   # Type of the dataset (Blender vs LLFF vs DeepVoxels vs something else)
   type: llff
   # Base directory of dataset.
-  basedir: cache/nerf_indoor/gt/J006
+  basedir: cache/nerf_indoor/hazy/J006
   # Optionally, provide a path to the pre-cached dataset dir. This
   # overrides the other dataset options.
   # cachedir: cache/legocache200
@@ -32,7 +32,7 @@ dataset:
   # Far clip plane (clip all depth values farther than this threshold).
   far: 1
   # Downsample factor (used to downsample input images)
-  downsample_factor: 1
+  downsample_factor: 4
   # TODO: Add description
   llffhold: 8
 
