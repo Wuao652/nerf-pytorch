@@ -6,7 +6,10 @@ import imageio
 import cv2
 import matplotlib.pyplot as plt
 
-def load_carla_data(basedir, downsample_factor=2.0):
+def load_carla_data(basedir,
+                    downsample_factor=2.0,
+                    face_forward=False,
+                    high_resolution=False):
     """
     This is the function to load and pre-process the rgb images.
     Args:
@@ -20,8 +23,14 @@ def load_carla_data(basedir, downsample_factor=2.0):
         i_split : list of 3 list. the index of train, validate and test images
     """
     print('start load carla data!')
-    cameralocs = ['upper2560', 'middle2560', 'lower2560']
-    H, W, focal = 1440, 2560, 896.2656489084286
+    if high_resolution:
+        cameralocs = ['upper2560', 'middle2560', 'lower2560']
+        H, W, focal = 1440, 2560, 896.2656489084286
+    else:
+        cameralocs = ['upper640', 'middle640', 'lower640']
+        H, W, focal = 480, 640, 224.06641222710715
+        downsample_factor = None
+
 
     if downsample_factor:
         H /= downsample_factor
@@ -65,10 +74,14 @@ def load_carla_data(basedir, downsample_factor=2.0):
         rgb_image = np.stack(rgb_image, 0)
         rgb_image = rgb_image.astype(np.float32)
         rgb_image = rgb_image[idx]
-        images.append(rgb_image)
 
         pose = np.load(os.path.join(basedir, c, 'poses.npy'))
         pose = pose.astype(np.float32)
+
+        if face_forward:
+            rgb_image = rgb_image[56:71]
+            pose = pose[56:71]
+        images.append(rgb_image)
         poses.append(pose)
 
     images = np.concatenate(images, axis=0)
@@ -87,14 +100,20 @@ def load_carla_data(basedir, downsample_factor=2.0):
     poses = np.concatenate(poses, axis=0)
     poses = poses.astype(np.float32)
 
+    if not face_forward:
     # shift only x and y
-    xy = poses[:, :-1, -1]
-
-    poses[:, :-1, -1] = poses[:, :-1, -1] - np.mean(xy, 0)
-    xyz = poses[..., -1]
-    scale_factor = np.max(np.fabs(xyz))
-    print('scale_facter: ', scale_factor)
-    poses[:, :, -1] /= scale_factor
+        xy = poses[:, :-1, -1]
+        poses[:, :-1, -1] = poses[:, :-1, -1] - np.mean(xy, 0)
+        # xyz = poses[..., -1]
+        # scale_factor = np.max(np.fabs(xyz))
+        scale_factor = 6.0
+        print('scale_facter: ', scale_factor)
+        poses[:, :, -1] /= scale_factor
+    else:
+        scale_factor = 6.0
+        xy_mean = np.array([-52.07071, -230.9998], dtype=np.float32)
+        poses[:, :-1, -1] = poses[:, :-1, -1] - xy_mean
+        poses[:, :, -1] /= scale_factor
 
     poses[:, :, 1] = - poses[:, :, 1]
     poses[:, :, 2] = - poses[:, :, 2]
@@ -103,10 +122,10 @@ def load_carla_data(basedir, downsample_factor=2.0):
     hwf = [H, W, focal]
 
     i_choice = np.random.choice(images.shape[0], images.shape[0], False)
-    i_split = [list(range(i, i+39)) for i in range(0, images.shape[0], images.shape[0] // 3)]
+    i_split = [list(range(i, i+images.shape[0] // 3)) for i in range(0, images.shape[0], images.shape[0] // 3)]
     i_split = [i_choice[s] for s in i_split]
 
-    # i_split[1] = np.array([i_split[1][0]])
+    i_split[1] = np.array([i_split[1][0]])
 
     print('images: ', images.shape)
     print('poses: ', poses.shape)
