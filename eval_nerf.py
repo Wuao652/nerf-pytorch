@@ -19,6 +19,9 @@ from nerf import (
     run_one_iter_of_nerf,
 )
 
+from nerf import load_carla_data, img2mse, mse2psnr
+from skimage.metrics import structural_similarity
+import statistics
 
 def cast_to_image(tensor, dataset_type):
     # Input tensor is (H, W, 3). Convert to (3, H, W).
@@ -40,16 +43,24 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--config", type=str, required=True, help="Path to (.yml) config file."
+        "--config",
+        type=str,
+        # required=True,
+        default="./logs/server_carla_ndc_ff/config.yml",
+        help="Path to (.yml) config file."
     )
     parser.add_argument(
         "--checkpoint",
         type=str,
-        required=True,
+        # required=True,
+        default="./logs/server_carla_ndc_ff/checkpoint299999.ckpt",
         help="Checkpoint / pre-trained model to evaluate.",
     )
     parser.add_argument(
-        "--savedir", type=str, help="Save images to this directory, if specified."
+        "--savedir",
+        type=str,
+        default="./cache/rendered/server_carla_ndc_ff",
+        help="Save images to this directory, if specified."
     )
     parser.add_argument(
         "--save-disparity-image", action="store_true", help="Save disparity images too."
@@ -83,7 +94,16 @@ def main():
         H, W, focal = hwf
         hwf = [int(H), int(W), focal]
         render_poses = torch.from_numpy(render_poses)
-
+    elif cfg.dataset.type.lower() == "carla":
+        images, poses, hwf, i_split = load_carla_data(cfg.dataset.basedir)
+        i_train, i_val, i_test = i_split
+        H, W, focal = hwf
+        H, W = int(H), int(W)
+        hwf = [H, W, focal]
+        images = torch.from_numpy(images)
+        poses = torch.from_numpy(poses)
+        print('i_test: ', i_test)
+        render_poses = poses[i_test]
     # Device on which to run.
     device = "cpu"
     if torch.cuda.is_available():
@@ -125,7 +145,7 @@ def main():
         )
         model_fine.to(device)
 
-    checkpoint = torch.load(configargs.checkpoint)
+    checkpoint = torch.load(configargs.checkpoint, map_location=device)
     model_coarse.load_state_dict(checkpoint["model_coarse_state_dict"])
     if checkpoint["model_fine_state_dict"]:
         try:
@@ -155,11 +175,18 @@ def main():
 
     # Evaluation loop
     times_per_image = []
+    iter_per_image = []
+    psnr_per_image = []
+    ssim_per_image = []
+    loss_per_image = []
+
     for i, pose in enumerate(tqdm(render_poses)):
         start = time.time()
         rgb = None, None
         disp = None, None
         with torch.no_grad():
+            img_idx = i_test[i]
+            img_target = images[img_idx].to(device)
             pose = pose[:3, :4]
             ray_origins, ray_directions = get_ray_bundle(hwf[0], hwf[1], hwf[2], pose)
             rgb_coarse, disp_coarse, _, rgb_fine, disp_fine, _ = run_one_iter_of_nerf(
@@ -178,17 +205,38 @@ def main():
             rgb = rgb_fine if rgb_fine is not None else rgb_coarse
             if configargs.save_disparity_image:
                 disp = disp_fine if disp_fine is not None else disp_coarse
+            loss = img2mse(rgb[..., :3], img_target[..., :3])
+            psnr = mse2psnr(loss.item())
+            ssim = structural_similarity(cast_to_image(rgb[..., :3], cfg.dataset.type.lower()),
+                                         cast_to_image(img_target[..., :3], cfg.dataset.type.lower()),
+                                         channel_axis=2)
+
+            print('image: ', str(i))
+            print('loss: ', loss.item())
+            print('psnr: ', psnr)
+            print('ssim: ', ssim)
+            iter_per_image.append(i)
+            loss_per_image.append(loss.item())
+            psnr_per_image.append(psnr)
+            ssim_per_image.append(ssim)
         times_per_image.append(time.time() - start)
         if configargs.savedir:
             savefile = os.path.join(configargs.savedir, f"{i:04d}.png")
             imageio.imwrite(
                 savefile, cast_to_image(rgb[..., :3], cfg.dataset.type.lower())
             )
+            savetarget = os.path.join(configargs.savedir, f"{i:04d}_target.png")
+            imageio.imwrite(
+                savetarget, cast_to_image(img_target[..., :3], cfg.dataset.type.lower())
+            )
             if configargs.save_disparity_image:
                 savefile = os.path.join(configargs.savedir, "disparity", f"{i:04d}.png")
                 imageio.imwrite(savefile, cast_to_disparity_image(disp))
         tqdm.write(f"Avg time per image: {sum(times_per_image) / (i + 1)}")
 
+    print('The mean loss: ', statistics.mean(loss_per_image))
+    print('The mean psnr: ', statistics.mean(psnr_per_image))
+    print('The mean ssim: ', statistics.mean(ssim_per_image))
 
 if __name__ == "__main__":
     main()
