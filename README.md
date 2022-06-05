@@ -1,3 +1,21 @@
+# usefull command to train/eval
+
+## Run training!
+
+Once everything is setup, to run experiments, first edit `config/wuao-carla.yml`.
+
+The training script can be invoked by running
+```bash
+python train_nerf.py --config ./config/wuao-carla.yml
+```
+## Run evaluation!
+
+Once you've trained your NeRF, it's time to use that to render the scene. Use the `eval_nerf.py` script to do that. For the `wuao-carla` example, this would be
+```bash
+python eval_nerf.py --config ./logs/'wuao-carla'/config.yml --checkpoint ./logs/'wuao-carla'/checkpoint249999.ckpt --savedir cache/rendered/wuao-carla
+```
+
+
 # nerf-pytorch
 #### A PyTorch re-implementation
 ### [Project](http://tancik.com/nerf) | [Video](https://youtu.be/JuH79E8rdKc) | [Paper](https://arxiv.org/abs/2003.08934)
